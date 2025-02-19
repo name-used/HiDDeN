@@ -12,6 +12,7 @@ import torchvision.utils
 from torch.utils import data
 import torch.nn.functional as F
 
+from jassor_utils.transform import MyTransform
 from options import HiDDenConfiguration, TrainingOptions
 from model.hidden import Hidden
 
@@ -54,7 +55,8 @@ def save_images(original_images, watermarked_images, epoch, folder, resize_to=No
 
     stacked_images = torch.cat([images, watermarked_images], dim=0)
     filename = os.path.join(folder, 'epoch-{}.png'.format(epoch))
-    torchvision.utils.save_image(stacked_images, filename, original_images.shape[0], normalize=False)
+    # torchvision.utils.save_image(stacked_images, filename, original_images.shape[0], normalize=False)
+    torchvision.utils.save_image(stacked_images, filename, 'png', normalize=False)
 
 
 def sorted_nicely(l):
@@ -124,24 +126,25 @@ def get_data_loaders(hidden_config: HiDDenConfiguration, train_options: Training
     transform it into tensor, and normalize it."""
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomCrop((hidden_config.H, hidden_config.W), pad_if_needed=True),
+            transforms.Resize((hidden_config.H, hidden_config.W)),
+            MyTransform(),
+            # transforms.RandomCrop((hidden_config.H, hidden_config.W), pad_if_needed=True),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ]),
         'test': transforms.Compose([
-            transforms.CenterCrop((hidden_config.H, hidden_config.W)),
+            transforms.Resize((hidden_config.H, hidden_config.W)),
+            # transforms.CenterCrop((hidden_config.H, hidden_config.W)),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         ])
     }
 
     train_images = datasets.ImageFolder(train_options.train_folder, data_transforms['train'])
-    train_loader = torch.utils.data.DataLoader(train_images, batch_size=train_options.batch_size, shuffle=True,
-                                               num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_images, batch_size=train_options.batch_size, shuffle=True, num_workers=4)
 
     validation_images = datasets.ImageFolder(train_options.validation_folder, data_transforms['test'])
-    validation_loader = torch.utils.data.DataLoader(validation_images, batch_size=train_options.batch_size,
-                                                    shuffle=False, num_workers=4)
+    validation_loader = torch.utils.data.DataLoader(validation_images, batch_size=train_options.batch_size, shuffle=False, num_workers=4)
 
     return train_loader, validation_loader
 

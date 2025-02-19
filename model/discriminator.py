@@ -2,6 +2,7 @@ import torch.nn as nn
 from options import HiDDenConfiguration
 from model.conv_bn_relu import ConvBNRelu
 
+
 class Discriminator(nn.Module):
     """
     Discriminator network. Receives an image and has to figure out whether it has a watermark inserted into it, or not.

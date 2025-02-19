@@ -91,5 +91,4 @@ def train(model: Hidden,
         utils.log_progress(validation_losses)
         logging.info('-' * 40)
         utils.save_checkpoint(model, train_options.experiment_name, epoch, os.path.join(this_run_folder, 'checkpoints'))
-        utils.write_losses(os.path.join(this_run_folder, 'validation.csv'), validation_losses, epoch,
-                           time.time() - epoch_start)
+        utils.write_losses(os.path.join(this_run_folder, 'validation.csv'), validation_losses, epoch, time.time() - epoch_start)

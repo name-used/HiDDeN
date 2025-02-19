@@ -37,8 +37,8 @@ class Hidden:
         self.mse_loss = nn.MSELoss().to(device)
 
         # Defined the labels used for training the discriminator/adversarial loss
-        self.cover_label = 1
-        self.encoded_label = 0
+        self.cover_label = 1.
+        self.encoded_label = 0.
 
         self.tb_logger = tb_logger
         if tb_logger is not None:
@@ -49,7 +49,6 @@ class Hidden:
             decoder_final.weight.register_hook(tb_logger.grad_hook_by_name('grads/decoder_out'))
             discrim_final = self.discriminator._modules['linear']
             discrim_final.weight.register_hook(tb_logger.grad_hook_by_name('grads/discrim_out'))
-
 
     def train_on_batch(self, batch: list):
         """
@@ -88,7 +87,7 @@ class Hidden:
             d_on_encoded_for_enc = self.discriminator(encoded_images)
             g_loss_adv = self.bce_with_logits_loss(d_on_encoded_for_enc, g_target_label_encoded)
 
-            if self.vgg_loss == None:
+            if self.vgg_loss is None:
                 g_loss_enc = self.mse_loss(encoded_images, images)
             else:
                 vgg_on_cov = self.vgg_loss(images)
@@ -96,15 +95,13 @@ class Hidden:
                 g_loss_enc = self.mse_loss(vgg_on_cov, vgg_on_enc)
 
             g_loss_dec = self.mse_loss(decoded_messages, messages)
-            g_loss = self.config.adversarial_loss * g_loss_adv + self.config.encoder_loss * g_loss_enc \
-                     + self.config.decoder_loss * g_loss_dec
+            g_loss = self.config.adversarial_loss * g_loss_adv + self.config.encoder_loss * g_loss_enc + self.config.decoder_loss * g_loss_dec
 
             g_loss.backward()
             self.optimizer_enc_dec.step()
 
         decoded_rounded = decoded_messages.detach().cpu().numpy().round().clip(0, 1)
-        bitwise_avg_err = np.sum(np.abs(decoded_rounded - messages.detach().cpu().numpy())) / (
-                batch_size * messages.shape[1])
+        bitwise_avg_err = np.sum(np.abs(decoded_rounded - messages.detach().cpu().numpy())) / (batch_size * messages.shape[1])
 
         losses = {
             'loss           ': g_loss.item(),

@@ -5,7 +5,6 @@ import torch
 import pickle
 import utils
 import logging
-import sys
 
 from options import *
 from model.hidden import Hidden
@@ -108,7 +107,6 @@ def main():
             pickle.dump(noise_config, f)
             pickle.dump(hidden_config, f)
 
-
     logging.basicConfig(level=logging.INFO,
                         format='%(message)s',
                         handlers=[
@@ -144,4 +142,16 @@ def main():
 
 
 if __name__ == '__main__':
+    # python main.py new --name <experiment_name> --data-dir <data_root> --batch-size <b>
+    import sys
+    sys.argv.extend([
+        'new',
+        '--name', 'jassor_test',
+        '--data-dir', rf'D:\jassor_resources\coco_2014\subset',
+        '--batch-size', '2',
+        '--epochs', '10',
+        '--size', '384',
+        # '--folder', rf'D:\jassor_resources\HiDDeN',
+    ])
+
     main()

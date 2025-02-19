@@ -27,35 +27,41 @@ def main():
     else:
         device = torch.device('cpu')
 
+    import sys
+    sys.argv.extend([
+        '--checkpoint-file', rf'D:\jassor\workspace_dark_logo\HiDDeN\runs\jassor_test 2025.02.19--10-47-21\checkpoints\jassor_test--epoch-6.pyt',
+        '--batch-size', '1',
+        '--options-file', rf'D:\jassor\workspace_dark_logo\HiDDeN\runs\jassor_test 2025.02.19--10-47-21\options-and-config.pickle',
+        # '--source-image', rf'D:\jassor\workspace_my_util\jassor_util\resources\cat.jpg',
+        '--source-image', rf'D:\jassor_resources\coco_2014\subset\train\cls_1\COCO_train2014_000000000034.jpg'
+    ])
+
     parser = argparse.ArgumentParser(description='Test trained models')
-    parser.add_argument('--options-file', '-o', default='options-and-config.pickle', type=str,
-                        help='The file where the simulation options are stored.')
+    parser.add_argument('--options-file', '-o', default='options-and-config.pickle', type=str, help='The file where the simulation options are stored.')
     parser.add_argument('--checkpoint-file', '-c', required=True, type=str, help='Model checkpoint file')
     parser.add_argument('--batch-size', '-b', default=12, type=int, help='The batch size.')
-    parser.add_argument('--source-image', '-s', required=True, type=str,
-                        help='The image to watermark')
+    parser.add_argument('--source-image', '-s', required=True, type=str, help='The image to watermark')
     # parser.add_argument('--times', '-t', default=10, type=int,
     #                     help='Number iterations (insert watermark->extract).')
 
     args = parser.parse_args()
 
     train_options, hidden_config, noise_config = utils.load_options(args.options_file)
-    noiser = Noiser(noise_config)
+    noiser = Noiser(noise_config, device=device)
 
     checkpoint = torch.load(args.checkpoint_file)
     hidden_net = Hidden(hidden_config, device, noiser, None)
     utils.model_from_checkpoint(hidden_net, checkpoint)
 
-
     image_pil = Image.open(args.source_image)
-    image = randomCrop(np.array(image_pil), hidden_config.H, hidden_config.W)
+    image = image_pil.resize((hidden_config.H, hidden_config.W))
+    # image = randomCrop(np.array(image_pil), hidden_config.H, hidden_config.W)
     image_tensor = TF.to_tensor(image).to(device)
     image_tensor = image_tensor * 2 - 1  # transform from [0, 1] to [-1, 1]
     image_tensor.unsqueeze_(0)
 
     # for t in range(args.times):
-    message = torch.Tensor(np.random.choice([0, 1], (image_tensor.shape[0],
-                                                    hidden_config.message_length))).to(device)
+    message = torch.Tensor(np.random.choice([0, 1], (image_tensor.shape[0], hidden_config.message_length))).to(device)
     losses, (encoded_images, noised_images, decoded_messages) = hidden_net.validate_on_batch([image_tensor, message])
     decoded_rounded = decoded_messages.detach().cpu().numpy().round().clip(0, 1)
     message_detached = message.detach().cpu().numpy()
@@ -65,7 +71,6 @@ def main():
     utils.save_images(image_tensor.cpu(), encoded_images.cpu(), 'test', '.', resize_to=(256, 256))
 
     # bitwise_avg_err = np.sum(np.abs(decoded_rounded - message.detach().cpu().numpy()))/(image_tensor.shape[0] * messages.shape[1])
-
 
 
 if __name__ == '__main__':
